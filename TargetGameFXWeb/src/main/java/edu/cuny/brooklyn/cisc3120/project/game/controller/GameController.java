@@ -2,9 +2,16 @@ package edu.cuny.brooklyn.cisc3120.project.game.controller;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.MalformedInputException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import org.slf4j.Logger;
@@ -17,6 +24,7 @@ import edu.cuny.brooklyn.cisc3120.project.game.net.StatusBroadcaster;
 import edu.cuny.brooklyn.cisc3120.project.game.utils.I18n;
 import edu.cuny.brooklyn.cisc3120.project.game.model.Shot;
 import edu.cuny.brooklyn.cisc3120.project.game.model.DecisionWrapper.UserDecision;
+import edu.cuny.brooklyn.cisc3120.project.game.model.GameStatistics;
 import edu.cuny.brooklyn.cisc3120.project.game.model.GameStatistics.StatNameValue;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -140,8 +148,45 @@ public class GameController {
         LOGGER.debug("saving the game: not implemented yet");
     }
     
+    private byte[] getPostData() throws UnsupportedEncodingException{
+//    	GameStatistics gameStats = targetGame.getGameStatistics();
+    	Map<String,Object> params = new LinkedHashMap<>();
+    	params.put("numOfTargetsShot", 10);
+    	params.put("numOfShotsFired", 25);
+    	params.put("numOfTargetsMade", 5);
+    	params.put("numOfRoundsWon", 1);
+    	params.put("numOfRoundsPlayed", 5);
+    	params.put("accuracy", 0.05);
+
+    	StringBuilder postData = new StringBuilder();
+    	for (Map.Entry<String,Object> param : params.entrySet()) {
+    		if (postData.length() != 0) postData.append('&');
+    		postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
+    		postData.append('=');
+    		postData.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
+    	}
+    	byte[] postDataBytes = postData.toString().getBytes("UTF-8");
+    	return postDataBytes;
+    }
+    
     @FXML
     void pushToTheWeb(ActionEvent event) {
+    	try{
+    		URL url = new URL("http://localhost:8080/gameStat/save");
+    		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+    		conn.setRequestMethod("POST");
+    		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+    		byte [] postDataBytes = getPostData();
+    		conn.setRequestProperty("Content-Length", String.valueOf(postDataBytes.length));
+    		conn.setDoOutput(true);
+    		conn.getOutputStream().write(postDataBytes);
+    		conn.getOutputStream().flush();
+    		System.out.println(conn.getResponseCode());
+    	}catch(MalformedInputException ex ){
+    		ex.printStackTrace();
+    	} catch (IOException e) {
+			e.printStackTrace();
+		}
         LOGGER.debug("pusing the game statistics to the web: not implemented yet");
     }
     
